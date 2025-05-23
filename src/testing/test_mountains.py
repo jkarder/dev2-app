@@ -1,4 +1,3 @@
-import pytest
 from dev2il_devops_app.mountains import highest_mountain
 
 
