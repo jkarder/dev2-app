@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-configmap
+data:
+  prometheus.yml: |
+    # my global config
+    global:
+      scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+      evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+      # scrape_timeout is set to the global default (10s).
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              # - alertmanager:9093
+
+    # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+    rule_files:
+      # - "first_rules.yml"
+      # - "second_rules.yml"
+
+    # A scrape configuration containing exactly one endpoint to scrape:
+    # Here it's Prometheus itself.
+    scrape_configs:
+      # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+      - job_name: "prometheus"
+
+        # metrics_path defaults to '/metrics'
+        # scheme defaults to 'http'.
+
+        scrape_interval: 1s
+        static_configs:
+          - targets: ["dev2-app-svc:9000"]
+        tls_config:
+          insecure_skip_verify: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: dev2
+  name: dev2-mon-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dev2-mon
+  template:
+    metadata:
+      labels:
+        app: dev2-mon
+    spec:
+      containers:
+        - name: dev2-prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: prometheus-configmap
+              mountPath: /etc/prometheus
+              readOnly: true
+        - name: dev2-grafana
+          image: grafana/grafana-oss
+          ports:
+            - containerPort: 3000
+      volumes:
+        - name: prometheus-configmap
+          configMap:
+            name: prometheus-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: dev2
+  name: dev2-mon-svc
+spec:
+  clusterIP: None
+  ports:
+    - name: prometheus-port
+      protocol: TCP
+      port: 9090
+      targetPort: 9090
+    - name: grafana-port
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: dev2-mon

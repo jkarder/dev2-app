@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: httpd
+  labels:
+    app: web
+spec:
+  containers:
+    - name: httpd
+      image: httpd:2.4.63-alpine
+      ports:
+        - containerPort: 80

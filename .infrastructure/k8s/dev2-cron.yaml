@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dev2-cron-60s
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: wget
+            image: alpine:latest
+            command: ["sh", "-c", "wget -q -O /dev/null http://dev2-app-svc:8000/fit"]
+          restartPolicy: OnFailure
